@@ -19,11 +19,11 @@ X,y = generateData(100,3)
 
 # define first layer & activation
 dense1 =dense.layer_dense(2,3)
-activation1 = rectifyLinear.Act_rectefiedLinear()
+activation1 = rectifyLinear.rectefiedLinear()
 
 #define second layer and activation
 dense2 = dense.layer_dense(3,3)
-activation2 = softmax.Act_softmax()
+activation2 = softmax.softmax()
 
 #forward propogation
 dense1.forward(X)
