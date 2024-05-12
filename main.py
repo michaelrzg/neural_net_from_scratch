@@ -6,7 +6,7 @@ import numpy as np #for math
 from layers import dense
 from data_generation.generateSpiralData import generateData #from generateData file
 from activation_functions import rectifyLinear,softmax # from activation_functions folder
-from loss_functions.categoricalCrossEntropy import categoricalCrossEntropy
+from loss_functions.categoricalCrossEntropy import categoricalCrossEntropy #from loss functions folder
 
 #_main:
 
