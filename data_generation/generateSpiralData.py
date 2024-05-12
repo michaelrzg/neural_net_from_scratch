@@ -1,4 +1,4 @@
-# this file contains the code generation functions for testing 
+# this file contains the code generation functions for testing purposes 
 # michael rizig
 # 5/12/24
 # modified from:
