@@ -4,22 +4,27 @@
 
 import numpy as np
 from generateData import generateData
+
 #good activation function for inner layers, not good for learning
 class Act_rectefiedLinear:
     def forward(self,input):
         self.output= np.maximum(0,input)      
+
 #not good for classification, good for training/learning
 class Act_softmax:
     def forward(self,input):
         expvalues = np.exp(input-np.max(input, axis=1, keepdims=True))
         probs = expvalues / np.sum(expvalues, axis =1, keepdims=True)
         self.output = probs
-#define a internal hidden layer
+
+# define parent loss class
 class loss:
     def calculateLoss(self,input,labels):
         loss = self.forward(input,labels)
         mse = np.mean(loss)
         return mse
+
+#first loss type
 class categoricalCrossEntropy(loss):
     def forward(self,input,labels):  
         # negative log of error of all predictions output from forward propogation  
@@ -31,6 +36,8 @@ class categoricalCrossEntropy(loss):
             confidences = np.sum(clippedLossVector*labels, axis = 1)
         final_likelyhood = -np.log(confidences) 
         return final_likelyhood    
+
+#define a dense layer type
 class layer_dense:
     def __init__(self,numNeurons,numInputs):
         self.weights = 0.1*np.random.randn(numNeurons,numInputs)
@@ -39,7 +46,7 @@ class layer_dense:
         self.output = np.dot(inputs,self.weights)+self.biases
 
 
-#main:
+#_main:
 
 #eulers number (e^x) used for softmax
 E = 2.71828182846
@@ -47,9 +54,11 @@ E = 2.71828182846
 #generate data
 np.random.seed(123)
 X,y = generateData(100,3)
+
 # define first layer & activation
 dense1 = layer_dense(2,3)
 activation1 = Act_rectefiedLinear()
+
 #define second layer and activation
 dense2 = layer_dense(3,3)
 activation2 = Act_softmax()
@@ -59,11 +68,14 @@ dense1.forward(X)
 activation1.forward(dense1.output)
 dense2.forward(activation1.output)
 activation2.forward(dense2.output)
+
 #print results of forward propogation
 firstpass= activation2.output
+
 #categorical cross entropy to calculate loss
 lossfunc = categoricalCrossEntropy()
 passloss = lossfunc.calculateLoss(firstpass,y)
+
 #get accuracy
 predictions = np.argmax(firstpass,axis=1)
 accuracy = np.mean(predictions==y)
