@@ -5,4 +5,8 @@
 import numpy as np
 class rectefiedLinear:
     def forward(self,input):
+        self.inputs = input
         self.output= np.maximum(0,input)      
+    def backward(self, dvalues):
+        self.dinputs = dvalues.copy()
+        self.dinputs[self.inputs <= 0] = 0
