@@ -1,39 +1,52 @@
+# this file contains the main class for the neural network from scratch
+# michael rizig
+# 5/13/24
+
+
 import numpy as np 
+
+#this class defines the layer type and functions for the neural network
 class dense: 
- 
+    #constructor 
     def __init__(self, numInputs, numNeurons): 
         self.weights = 0.01 * np.random.randn(numInputs, numNeurons) 
         self.biases = np.zeros((1, numNeurons)) 
  
-  
+    #propogate inputdata with weights multiplied and biases addded
     def propogate(self, data): 
         self.inputs = data 
         self.output = np.dot(data, self.weights) + self.biases 
- 
-    def backwards_propogate(self, dvalues): 
+    
+    #recieves derivatives of values abd stores into dinput, der weights and der bias for learning
+    def back_propogates_propogate(self, dvalues): 
         self.derivative_weights = np.dot(self.inputs.T, dvalues) 
         self.derivative_bias = np.sum(dvalues, axis=0, keepdims=True) 
         self.dinputs = np.dot(dvalues, self.weights.T) 
+
+# activation function for inner hidden layers. is 0 if value <0, else value holds        
 class RectifiedLinearActivation: 
- 
-    def forward(self, inputs): 
+    
+    #stores inputs and generates output values
+    def propogate(self, inputs): 
         self.inputs = inputs 
         self.output = np.maximum(0, inputs) 
- 
-    def backward(self, dvalues): 
+    
+    #takes in derivative values and stores them into dinputs
+    def back_propogate(self, dvalues): 
         self.dinputs = dvalues.copy() 
- 
         self.dinputs[self.inputs <= 0] = 0
+
+#this activation function is for output layer        
 class softmaxActivation: 
- 
-    def forward(self, inputs): 
+    #stores inputs for later, calculates euler ^x value for each input and stores that in outputs
+    def propogate(self, inputs): 
         self.inputs = inputs 
- 
         values_e = np.exp(inputs - np.max(inputs, axis=1, keepdims=True)) 
         p = values_e / np.sum(values_e, axis=1, keepdims=True) 
- 
         self.output = p 
-    def backward(self, dvalues): 
+    
+    #takes in partial derivates, creates jacobian matrix and stores values.
+    def back_propogate(self, dvalues): 
  
         self.dinputs = np.empty_like(dvalues) 
  
@@ -41,42 +54,7 @@ class softmaxActivation:
             single_output = single_output.reshape(-1, 1) 
             jacobian_matrix = np.diagflat(single_output) - np.dot(single_output, single_output.T) 
             self.dinputs[index] = np.dot(jacobian_matrix,  single_dvalues) 
-class Stochastic_Gradient_Descent: 
 
-    def __init__(self, LR=1., decay=0., momentum=0.): 
-        self.LR = LR 
-        self.current_LR = LR 
-        self.decay = decay 
-        self.index = 0 
-        self.momentum = momentum
-    
-    def pre_updateLayerValues(self): 
-        if self.decay: 
-            self.current_LR = self.LR * (1. / (1. + self.decay * self.index)) 
- 
-    def updateLayerValues(self, layer): 
- 
-        if self.momentum: 
- 
-            if not hasattr(layer, 'weight_momentums'): 
-                layer.weight_momentums = np.zeros_like(layer.weights) 
-                layer.bias_momentums = np.zeros_like(layer.biases) 
-            weight_updates = self.momentum * layer.weight_momentums - self.current_LR * layer.derivative_weights 
-            layer.weight_momentums = weight_updates 
- 
-            bias_updates = self.momentum * layer.bias_momentums - self.current_LR * layer.derivative_bias 
-            layer.bias_momentums = bias_updates 
- 
-        else: 
-            weight_updates = -self.current_LR * layer.derivative_weights 
-            bias_updates = -self.current_LR * layer.derivative_bias 
-        layer.weights += weight_updates 
-        layer.biases += bias_updates            
-   
-    def post(self): 
-        self.index += 1 
- 
- 
 class ADAM: 
  
     def __init__(self, LR=0.001, decay=0., epsilon=1e-7, 
@@ -118,14 +96,14 @@ class ADAM:
 class lossParentClass: 
 
     def calc(self, output, y): 
-        sample_losses = self.forward(output, y) 
+        sample_losses = self.propogate(output, y) 
         data_loss = np.mean(sample_losses) 
         return data_loss 
  
  
 class CatCrossEntropy(lossParentClass): 
  
-    def forward(self, output, labels): 
+    def propogate(self, output, labels): 
  
         passes = len(output) 
         output_clipped = np.clip(output, 1e-7, 1 - 1e-7) 
@@ -143,7 +121,7 @@ class CatCrossEntropy(lossParentClass):
  
         minusLog = -np.log(conf) 
         return minusLog
-    def backward(self, dvalues, labels): 
+    def back_propogate(self, dvalues, labels): 
  
         passes = len(dvalues) 
         labels = len(dvalues[0]) 
@@ -160,12 +138,12 @@ class softmaxActivation_CatCrossEntropy():
         self.activation_layer = softmaxActivation() 
         self.loss = CatCrossEntropy() 
  
-    def forward(self, inputs, labels): 
-        self.activation_layer.forward(inputs) 
+    def propogate(self, inputs, labels): 
+        self.activation_layer.propogate(inputs) 
         self.output = self.activation_layer.output 
         return self.loss.calc(self.output, labels) 
 
-    def backward(self, dvalues, labels): 
+    def back_propogate(self, dvalues, labels): 
   
         passes = len(dvalues) 
         if len(labels.shape) == 2: 
@@ -174,7 +152,43 @@ class softmaxActivation_CatCrossEntropy():
         self.dinputs = dvalues.copy() 
         self.dinputs[range(passes), labels] -= 1  
         self.dinputs = self.dinputs / passes
-         
+class Stochastic_Gradient_Descent: 
+    #constructor to set learning rate, decay and momentum. 
+    def __init__(self, LR=1., decay=0., momentum=0.): 
+        self.LR = LR 
+        self.current_LR = LR 
+        self.decay = decay 
+        self.index = 0 
+        self.momentum = momentum
+    #Updates the current learning rate based on the decay and the current iteration index.
+    def pre_updateLayerValues(self): 
+        if self.decay: 
+            self.current_LR = self.LR * (1. / (1. + self.decay * self.index)) 
+ 
+    #Updates the weights and biases of the given layer using SGD
+    def updateLayerValues(self, layer): 
+ 
+        if self.momentum: 
+ 
+            if not hasattr(layer, 'weight_momentums'): 
+                layer.weight_momentums = np.zeros_like(layer.weights) 
+                layer.bias_momentums = np.zeros_like(layer.biases) 
+            weight_updates = self.momentum * layer.weight_momentums - self.current_LR * layer.derivative_weights 
+            layer.weight_momentums = weight_updates 
+ 
+            bias_updates = self.momentum * layer.bias_momentums - self.current_LR * layer.derivative_bias 
+            layer.bias_momentums = bias_updates 
+ 
+        else: 
+            weight_updates = -self.current_LR * layer.derivative_weights 
+            bias_updates = -self.current_LR * layer.derivative_bias 
+        layer.weights += weight_updates 
+        layer.biases += bias_updates            
+   
+    def post(self): 
+        self.index += 1 
+ 
+          
 def generateData(points, classes):
     X = np.zeros((points*classes,2))
     y = np.zeros(points*classes, dtype='uint8')
@@ -200,11 +214,11 @@ for i in range(10001):
  
     first_hidden.propogate(X) 
  
-    activation_layer.forward(first_hidden.output) 
+    activation_layer.propogate(first_hidden.output) 
  
     second_hidden.propogate(activation_layer.output) 
  
-    current_pass = loss_activation_layer.forward(second_hidden.output, y) 
+    current_pass = loss_activation_layer.propogate(second_hidden.output, y) 
  
     predictions = np.argmax(loss_activation_layer.output, axis=1) 
     if len(y.shape) == 2: 
@@ -213,14 +227,14 @@ for i in range(10001):
  
     if not i % 100: 
         print(f'itteration: {i}, ' + 
-              f'accuracy: {accuracy:.3f}, ' + 
-              f'loss: {current_pass:.3f}, ' + 
+              f'accuracy: {accuracy:.6f}, ' + 
+              f'loss: {current_pass:.6f}, ' + 
               f'learning rate: {layer_optimizer.current_LR}') 
  
-    loss_activation_layer.backward(loss_activation_layer.output, y) 
-    second_hidden.backwards_propogate(loss_activation_layer.dinputs) 
-    activation_layer.backward(second_hidden.dinputs) 
-    first_hidden.backwards_propogate(activation_layer.dinputs) 
+    loss_activation_layer.back_propogate(loss_activation_layer.output, y) 
+    second_hidden.back_propogates_propogate(loss_activation_layer.dinputs) 
+    activation_layer.back_propogate(second_hidden.dinputs) 
+    first_hidden.back_propogates_propogate(activation_layer.dinputs) 
 
     layer_optimizer.pre_updateLayerValues() 
     layer_optimizer.updateLayerValues(first_hidden) 
